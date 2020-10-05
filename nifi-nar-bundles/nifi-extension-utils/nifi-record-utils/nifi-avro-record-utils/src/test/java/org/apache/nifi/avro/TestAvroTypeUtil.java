@@ -345,6 +345,31 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testConversionUnionValuesInMap() throws IOException {
+
+        Schema inputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("schemaWithWiderUnion.json"));
+        Schema outputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("schemaWithUnion.json"));
+
+        RecordSchema recordInputSchema = AvroTypeUtil.createSchema(inputSchema);
+
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("a", 1.098);
+        map.put("b", "test");
+        map.put("c", null);
+        GenericRecord input = new GenericRecordBuilder(inputSchema)
+                .set("field1", map)
+                .build();
+
+        GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(new MapRecord(recordInputSchema, AvroTypeUtil.convertAvroRecordToMap(input, recordInputSchema)), outputSchema);
+
+        Map<String, Object> field1 = (Map<String, Object>) avroRecord.get("field1");
+        assertNotNull(field1);
+        assertEquals(String.class, field1.get("a").getClass());
+        assertEquals(String.class, field1.get("b").getClass());
+        assertNull(field1.get("c"));
+    }
+
+    @Test
     public void testToDecimalConversion() {
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.create(Type.BYTES);

@@ -19,12 +19,15 @@
 package org.apache.nifi.processors.kite;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Parser;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.commons.lang.LocaleUtils;
@@ -141,6 +144,48 @@ public class TestAvroRecordConverter {
         assertEquals(5L, outputRecord.get("l1"));
         assertEquals(1000L, outputRecord.get("s1"));
         assertEquals(200L, outputRecord.get("parentId"));
+    }
+
+    @Test
+    public void conversionWithUnionValuesInMap() throws Exception {
+        Schema input = new Schema.Parser().parse("{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"in\",\n" +
+                "  \"namespace\": \"namespace\",\n" +
+                "  \"fields\": [\n" +
+                "    {\n" +
+                "      \"name\": \"field1\",\n" +
+                "      \"type\": {\"type\" : \"map\", \"values\" : [\"null\", \"string\", \"double\"]}\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        Schema output = new Schema.Parser().parse("{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"out\",\n" +
+                "  \"namespace\": \"namespace\",\n" +
+                "  \"fields\": [\n" +
+                "    {\n" +
+                "      \"name\": \"field1\",\n" +
+                "      \"type\": {\"type\" : \"map\", \"values\" : [\"null\", \"string\"]}\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        AvroRecordConverter converter = new AvroRecordConverter(input, output, new HashMap<>());
+
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("a", 1.098);
+        map.put("b", "test");
+        map.put("c", null);
+        Record inputRecord = new Record(input);
+        inputRecord.put("field1", map);
+
+        Record outputRecord = converter.convert(inputRecord);
+
+        Map<String, Object> field1 = (Map<String, Object>) outputRecord.get("field1");
+        assertNotNull(field1);
+        assertEquals(String.class, field1.get("a").getClass());
+        assertEquals(String.class, field1.get("b").getClass());
+        assertNull(field1.get("c"));
     }
 
     /**

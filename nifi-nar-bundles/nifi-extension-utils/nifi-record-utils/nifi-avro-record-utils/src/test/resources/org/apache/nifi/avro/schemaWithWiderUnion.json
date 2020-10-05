@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "in",
+  "namespace": "namespace",
+  "fields": [
+    {
+      "name": "field1",
+      "type": {"type" : "map", "values" : ["null", "string", "double"]}
+    }
+  ]
+}
